@@ -1,0 +1,26 @@
+<idea-plugin>
+    <id>eu.davatz.ember.EmberQuickFileSwitch</id>
+    <name>Ember File Picker</name>
+    <vendor email="crixx@davatz.eu" url="http://github.com/crixx">crixx</vendor>
+
+    <description><![CDATA[
+    Plugin to quickly switch from one Ember file to related ones
+    ]]></description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <action id="crixx.EmberQuickFileSwitchAction" class="EmberQuickFileSwitchAction" text="Ember QuickFileSwitch"
+                description="EmberQuickFileSwitch lets you switch from one Ember file to related ones">
+            <add-to-group group-id="GoToMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt S"/>
+        </action>
+    </actions>
+</idea-plugin>
