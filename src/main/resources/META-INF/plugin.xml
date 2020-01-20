@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>eu.davatz.ember.EmberQuickFileSwitch</id>
-    <name>Ember File Picker</name>
+    <name>EmberQuickFileSwitch</name>
     <vendor email="crixx@davatz.eu" url="http://github.com/crixx">crixx</vendor>
 
     <description><![CDATA[
