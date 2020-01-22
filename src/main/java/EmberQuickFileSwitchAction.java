@@ -1,4 +1,3 @@
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
@@ -6,16 +5,14 @@ import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.TestSourcesFilter;
 import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.ui.popup.ListSeparator;
-import com.intellij.openapi.ui.popup.PopupStep;
-import com.intellij.openapi.ui.popup.util.BaseListPopupStep;
+import com.intellij.openapi.ui.popup.PopupChooserBuilder;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.components.JBList;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.util.ArrayList;
@@ -88,12 +85,25 @@ public class EmberQuickFileSwitchAction extends AnAction {
         testFiles.addAll(scssTestFiles);
         testFiles.addAll(cssTestFiles);
 
-        JBPopup popup = JBPopupFactory
-                .getInstance()
-                .createListPopup(new FileSelectionListPopupStep("Related Files", srcFiles, testFiles, currentProject));
+        ArrayList<VirtualFile> files = new ArrayList<>();
+        files.addAll(srcFiles);
+        files.addAll(testFiles);
 
-        popup.getContent().setBackground(JBColor.BLUE);
-        popup.getContent().setForeground(JBColor.CYAN);
+        final JBList<VirtualFile> list = new JBList(files);
+        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        final ListCellRenderer renderer = new IconColoredListCellRenderer(currentProject);
+        list.setCellRenderer(renderer);
+
+        final PopupChooserBuilder builder = new PopupChooserBuilder(list);
+        builder.setItemChoosenCallback(new Runnable() {
+            @Override
+            public void run() {
+                new OpenFileDescriptor(currentProject, list.getSelectedValue()).navigate(true);
+            }
+        });
+
+        final JBPopup popup = builder.createPopup();
         popup.showInFocusCenter();
     }
 
@@ -105,8 +115,12 @@ public class EmberQuickFileSwitchAction extends AnAction {
         return normalizedFilename;
     }
 
+    private class IconColoredListCellRenderer extends ColoredListCellRenderer<VirtualFile> {
+       Project project;
 
-    private static class FileSelectionListPopupStep extends BaseListPopupStep<VirtualFile> {
+        public IconColoredListCellRenderer(Project project) {
+        this.project = project;
+        }
 
         public static final String ADAPTERS = "adapters";
         public static final String SERIALIZER = "serializers";
@@ -139,62 +153,6 @@ public class EmberQuickFileSwitchAction extends AnAction {
 
         private Pattern pattern = Pattern.compile("/(" + String.join("|", fileTypes) + ")/");
 
-        Project project;
-        List<VirtualFile> srcFiles;
-        List<VirtualFile> testFiles;
-
-        public FileSelectionListPopupStep(@Nullable String title, @NotNull List<VirtualFile> srcFiles, @NotNull List<VirtualFile> testFiles, Project project) {
-            super(title, createFileList(srcFiles, testFiles));
-            this.project = project;
-            this.srcFiles = srcFiles;
-            this.testFiles = testFiles;
-        }
-
-        private static List<? extends VirtualFile> createFileList(List<VirtualFile> srcFiles, List<VirtualFile> testFiles) {
-            ArrayList<VirtualFile> files = new ArrayList<>();
-            files.addAll(srcFiles);
-            files.addAll(testFiles);
-            return files;
-        }
-
-
-        @Nullable
-        @Override
-        public PopupStep onChosen(VirtualFile selectedFile, boolean finalChoice) {
-            if (finalChoice) {
-                this.openFile(selectedFile);
-            }
-            return super.onChosen(selectedFile, finalChoice);
-        }
-
-
-        @NotNull
-        @Override
-        public String getTextFor(VirtualFile file) {
-            return String.format("%s - %s: %s", file.getNameWithoutExtension(), this.getType(file), file.getCanonicalPath());
-        }
-
-        @Nullable
-        @Override
-        public ListSeparator getSeparatorAbove(VirtualFile file) {
-            if (TestSourcesFilter.isTestSources(file, project) && testFiles.indexOf(file) == 0) {
-                return new ListSeparator("Tests");
-            } else if(srcFiles.indexOf(file) == 0) {
-                return new ListSeparator("Sources");
-            } else {
-                return null;
-            }
-        }
-
-        @Override
-        public Icon getIconFor(VirtualFile file) {
-            if (TestSourcesFilter.isTestSources(file, project)) {
-                return AllIcons.Scope.Tests;
-            }
-            return getIcon(file);
-        }
-
-
         private Icon getIcon(VirtualFile file) {
             String type = this.getType(file);
             switch (type) {
@@ -215,10 +173,6 @@ public class EmberQuickFileSwitchAction extends AnAction {
             return file.getFileType().getIcon();
         }
 
-        private void openFile(VirtualFile file) {
-            new OpenFileDescriptor(this.project, file).navigate(true);
-        }
-
         private String getType(VirtualFile file) {
             Matcher matcher = this.pattern.matcher(file.getCanonicalPath());
             if (matcher.find()) {
@@ -227,5 +181,23 @@ public class EmberQuickFileSwitchAction extends AnAction {
                 return "";
             }
         }
+
+        @Override
+        protected void customizeCellRenderer(@NotNull JList<? extends VirtualFile> list, VirtualFile file, int index, boolean selected, boolean hasFocus) {
+            setIcon(getIcon(file));
+            setIconTextGap(20);
+            appendTextPadding(150);
+            append(file.getNameWithoutExtension());
+            appendTextPadding(150);
+            append(getType(file));
+            appendTextPadding(300);
+            append(file.getCanonicalPath());
+
+            if (TestSourcesFilter.isTestSources(file, project)) {
+                setBackground(JBColor.green);
+            }
+        }
+
+
     }
 }
